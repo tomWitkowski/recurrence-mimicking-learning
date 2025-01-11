@@ -8,3 +8,6 @@ venv/
 .arch/
 data/*/*.csv
 data/*/*.npy
+weights/*.npy
+results/*.csv
+*.csv
