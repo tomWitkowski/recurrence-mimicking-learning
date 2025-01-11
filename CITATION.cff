@@ -1,0 +1,34 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Recurrence Mimicking Learning
+message: >-
+  This repository contains an implementation of Recurrence
+  Mimicking Learning (RML).
+type: software
+authors:
+  - given-names: Tomasz
+    family-names: Witkowski
+    email: tomasz.witkowski1@edu.uekat.pl
+    affiliation: University of Economics in Katowice
+    orcid: 'https://orcid.org/0000-0001-9648-9098'
+repository-code: >-
+  https://github.com/tomWitkowski/recurrence-mimicking-learning
+abstract: >+
+  In brief, RML uses a single feedforward pass to generate
+  actions for each time step as if they were generated
+  recurrently. It does so by stacking the input X multiple
+  times along all possible previous actions a_(t-1). After generating a stacked output, a lightweight
+  re-indexing step (ϕ-processing) reconstructs a trajectory
+  of decisions that mirrors the recurrent process. This
+  allows a direct calculation of the global reward (e.g.,
+  Sharpe Ratio) with only two forward passes, rather than T
+  passes in a traditional offline RRL.
+keywords:
+  - recurrence mimicking learning
+  - recurrent reinforcement learning
+  - offline reinforcement learning
+  - recurrent classification
+  - sharpe ratio
+license: MIT
