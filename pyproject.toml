@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rml-project"
+version = "0.1.0"
+description = "Recurrence Mimicking Learning experiments"
+authors = [
+  { name="Your Name" }
+]
+license = "MIT"
+dependencies = [
+  "numpy",
+  "pandas",
+  "tensorflow",
+  "matplotlib"
+]
