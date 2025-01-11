@@ -1,17 +1,21 @@
 import tensorflow as tf
 import numpy as np
-from get_data import get_done_data, reverse_pair
 from tqdm import tqdm
 import logging
-from model import Agent
 import time
 import os
 import random
 import pandas as pd
 import sys
-from config import Config as cfg
-from utils import LightStrategy, fast_rate_of_return
 import argparse
+
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
+
+from config import Config as cfg
+from model import Agent
+from utils import LightStrategy, fast_rate_of_return
+from get_data import get_done_data
 
 
 if 'gpu' not in os.environ.get('CONDA_DEFAULT_ENV'):
@@ -158,7 +162,6 @@ def main():
             print(os.environ)
             raise Exception('no train log name')
 
-#         XV, BA = reverse_pair(XV,BA)
         if 'START_TRAIN' in os.environ.keys():
             append_to_csv(pd.DataFrame({
                 'epoch':[I],

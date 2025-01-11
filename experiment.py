@@ -31,7 +31,7 @@ def get_last_gain(col='gain', train_log_name='train_log.csv'):
     except FileNotFoundError:
         return 0.0
 
-def main(train_log_name='train_log.csv'):
+def main(train_log_name='results/train_log.csv'):
     """
     Main routine that runs in parallel for each experiment instance.
     """
@@ -58,7 +58,7 @@ def main(train_log_name='train_log.csv'):
         }, csv_file=train_log_name)
 
         os.environ['train_log_name'] = train_log_name
-        subprocess.run(['python', 'get_data.py'], env=os.environ)
+        subprocess.run(['python', 'src/get_data.py'], env=os.environ)
 
         append_to_csv({
             'time': [time.time()],
@@ -98,5 +98,5 @@ def main(train_log_name='train_log.csv'):
 if __name__ == "__main__":
     with ThreadPoolExecutor(max_workers=3) as executor:
         for i in range(cfg.n_experiments):
-            executor.submit(main, f'{cfg.exp_name}_{i}.csv')
+            executor.submit(main, f'results/{cfg.exp_name}_{i}.csv')
             time.sleep(30)

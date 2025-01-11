@@ -4,8 +4,10 @@ import warnings
 import gc
 import tensorflow as tf
 import logging
-import os
-from .config import Config as cfg
+import sys, os
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
+from config import Config as cfg
 
 def main(cat: str = 'train_data', mode: str = 'standard'):
     os.environ['CUDA_VISIBLE_DEVICES']=""

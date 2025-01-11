@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import sys, os
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
 
 from config import Config as cfg
 
