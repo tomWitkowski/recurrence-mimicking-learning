@@ -1,7 +1,7 @@
 """Core model file defining Encoder, Decoder, UtilityFunction, and Agent classes."""
 
 import os
-from config import Config as cfg
+from .config import Config as cfg
 import tensorflow as tf
 import numpy as np
 import random

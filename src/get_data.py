@@ -5,7 +5,7 @@ import gc
 import tensorflow as tf
 import logging
 import os
-from config import Config as cfg
+from .config import Config as cfg
 
 def main(cat: str = 'train_data', mode: str = 'standard'):
     os.environ['CUDA_VISIBLE_DEVICES']=""

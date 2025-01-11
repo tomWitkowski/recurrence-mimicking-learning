@@ -3,7 +3,7 @@ import numpy as np
 from get_data import get_done_data, reverse_pair
 from tqdm import tqdm
 import logging
-from model import Trader
+from model import Agent
 import time
 import os
 import random
@@ -46,7 +46,7 @@ def append_to_csv(data_dict, csv_file='train_log.csv'):
 def main():
     """
     
-    Train Trader
+    Train Agent
     
     """
     parser = argparse.ArgumentParser(description='Process some integers.')
@@ -57,45 +57,32 @@ def main():
     del XVs
     del all_dec
     
-#     import time
-#     print('sleep')
-#     time.sleep(50)
-    # print(XV)
-    # print(BA)
-    # sys.exit(1)
-    trader=Trader(input_len = XV.shape[1:])    
+    
+    agent=Agent(input_len = XV.shape[1:])    
     
     if cfg.load_weights:
         try:
-            trader.decider.set_weights( np.load('weights/decider.npy', allow_pickle=True) )
+            agent.decoder.set_weights( np.load('weights/decoder.npy', allow_pickle=True) )
         except Exception as e:
             print("attempted to load weights and failed")
             print(e)
-            # if input('Do you want to init new decider and overwrite weights? (y/n)') != 'y':
-            #     raise e
             
         try:
-            trader.deviser.set_weights( np.load('weights/deviser.npy', allow_pickle=True) )
+            agent.encoder.set_weights( np.load('weights/encoder.npy', allow_pickle=True) )
         except Exception as e:
             print("attempted to load weights and failed")
             print(e)
-            # if input('Do you want to init new deviser and overwrite weights? (y/n)') != 'y':
-            #     raise e
             
     max_reward = 0
     test_rewards = []
     rewards = []
 
-    # LR = 0.00001
     if cfg.reward_type == 'differential_sharpe':
+        # usually for online learning
         lr = 0.01
-        # lr = 0.001
     else:
+        # for RML
         lr = 0.0001
-    # lr = 0.001
-    
-
-    # lr = 0.001
 
     bs = len(XV)
     
@@ -108,24 +95,20 @@ def main():
     return_rate: float = -100.
     avg_grads: float = 0.1
     
-
     if cfg.test_during_training:
         _, _, XV_test, BA_test = get_done_data(f'data/test_data')
 
-    np.save('weights/deviser.npy',np.array(trader.deviser.get_weights(), dtype=object ))
-    np.save('weights/decider.npy',np.array(trader.decider.get_weights(), dtype=object ))
+    np.save('weights/encoder.npy',np.array(agent.encoder.get_weights(), dtype=object ))
+    np.save('weights/decoder.npy',np.array(agent.decoder.get_weights(), dtype=object ))
     
     for I in range(EPOCHS):
         start = time.time()
         
-        # lr = 0.00002 if return_rate > 5 else 0.0005
-        # lr = lr if avg_grads > 0.01 else round(lr/max(avg_grads,lr*10),5)
-        
-        trader.set_lr(lr if avg_grads>0.0001 else lr*10)
+        agent.set_lr(lr if avg_grads>0.0001 else lr*10)
         rewards = []
         grads = []
         if cfg.exp_train_len==cfg.train_batch_size:
-            grads, decisions, rewards, loss_value = trader.train_iteration(XV, BA,
+            grads, decisions, rewards, loss_value = agent.train_iteration(XV, BA,
                                                                            offline=cfg.offline_training, 
                                                                            online_learning=cfg.reward_type=='differential_sharpe')
             grads = [sum([x.numpy().reshape(-1,).tolist() for x in grads],[])]
@@ -134,7 +117,7 @@ def main():
             random.shuffle(tr_it)
             for _i in tr_it:  
                 xv,ba = XV[_i-batch_size:_i], BA[_i-batch_size:_i]
-                grad, decisions, reward, loss_value = trader.train_iteration(xv, ba)
+                grad, decisions, reward, loss_value = agent.train_iteration(xv, ba)
                 rewards.append(reward)
                 grads.append(sum([x.numpy().reshape(-1,).tolist() for x in grad],[]))
         
@@ -143,17 +126,17 @@ def main():
         avg_grads = np.mean(np.abs(sum(grads,[])))
         
         if 'sharpe' in cfg.reward_type:
-            print(f"{I}/{EPOCHS}| SR: {np.round(np.mean(rewards),5)} | exec_time: {round(time.time()-start,1)} | lr: {lr} | grads: {np.round(avg_grads,7)} ") #| {round(trader.decider.a.numpy(),2)} {round(trader.decider.b.numpy(),2)} | ")
+            print(f"{I}/{EPOCHS}| SR: {np.round(np.mean(rewards),5)} | exec_time: {round(time.time()-start,1)} | lr: {lr} | grads: {np.round(avg_grads,7)} ") #| {round(agent.decoder.a.numpy(),2)} {round(agent.decoder.b.numpy(),2)} | ")
         else:
             print(f"{I}/{EPOCHS}: {return_rate} | exec_time: {round(time.time()-start,1)} | lr: {lr} | grads: {np.round(avg_grads,7)}")
         
 
-        np.save('weights/deviser.npy',np.array(trader.deviser.get_weights(), dtype=object ))
-        np.save('weights/decider.npy',np.array(trader.decider.get_weights(), dtype=object ))
+        np.save('weights/encoder.npy',np.array(agent.encoder.get_weights(), dtype=object ))
+        np.save('weights/decoder.npy',np.array(agent.decoder.get_weights(), dtype=object ))
     
         if cfg.test_during_training:
 
-            _grads, decisions, reward_test, _ = trader.test_iteration(XV_test, BA_test)
+            _grads, decisions, reward_test, _ = agent.test_iteration(XV_test, BA_test)
             decisions = decisions.numpy()
             reward_test = np.round(reward_test,5)
             

@@ -35,6 +35,8 @@ def main(train_log_name='train_log.csv'):
     """
     Main routine that runs in parallel for each experiment instance.
     """
+    if not os.path.exists('weights/'):
+        os.makedirs('weights')
     if os.path.exists('weights/deviser.npy'):
         os.remove('weights/deviser.npy')
     if os.path.exists('weights/decider.npy'):
@@ -57,7 +59,6 @@ def main(train_log_name='train_log.csv'):
 
         os.environ['train_log_name'] = train_log_name
         subprocess.run(['python', 'get_data.py'], env=os.environ)
-        print('-' * 20)
 
         append_to_csv({
             'time': [time.time()],
@@ -72,7 +73,7 @@ def main(train_log_name='train_log.csv'):
             'source_data': [cfg.source_data]
         }, csv_file=train_log_name)
 
-        train_process = subprocess.Popen(['python', 'train.py', train_log_name])
+        train_process = subprocess.Popen(['python', 'src/train.py', train_log_name])
         time.sleep(1)
 
         while True:
