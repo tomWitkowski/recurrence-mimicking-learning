@@ -16,6 +16,8 @@ class Config:
         - cum_sharpe - ... 
     M - number of features
     """
+    gpu: bool = False
+
     mode: str = 'diff'
     lewar: int = 1
     reverse_pair: bool = False
@@ -34,7 +36,6 @@ class Config:
     # used for data processing if mode is 'standard_trans'
     wave_CHANGE: float = 0.0005
     wave_LENGTH: int = 40
-
 
     test_during_training: bool = True
     offline_training: str = False # True

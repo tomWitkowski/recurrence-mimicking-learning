@@ -1,18 +1,16 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "rml-project"
+[tool.poetry]
+name = "recurrence-mimicking-learning"
 version = "0.1.0"
 description = "Recurrence Mimicking Learning experiments"
-authors = [
-  { name="Your Name" }
-]
-license = "MIT"
-dependencies = [
-  "numpy",
-  "pandas",
-  "tensorflow",
-  "matplotlib"
-]
+authors = ["tomasz.witkowski1@edu.uekat.pl"]
+
+[tool.poetry.dependencies]
+python = "3.9.12"
+tensorflow = "==2.9.1"  
+pandas = "==1.4.2"
+numpy = "==1.21.4"
+tqdm = "~4.67.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

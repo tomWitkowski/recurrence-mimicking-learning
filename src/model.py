@@ -243,7 +243,7 @@ class Agent:
             with tf.GradientTape() as tape:
                 dec_seq = tf.constant([0.])
                 for xrow in XV:
-                    prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None]), tf.int32),3)[0,...]
+                    prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None])+1.0, tf.int32),3)[0,...]
                     pred_a = self.decoder([self.encoder(xrow[None,:]), prev_a])
                     dec_seq = tf.concat([dec_seq, pred_a[0]], axis=0)
                 dec_seq = dec_seq[:-1,None]
@@ -254,6 +254,7 @@ class Agent:
             gd = [tf.clip_by_value(g, -1000, 1000) for g in gd]
             self.encoder.optimizer.apply_gradients(zip(ge, self.encoder.trainable_weights))
             self.decoder.optimizer.apply_gradients(zip(gd, self.decoder.trainable_weights))
+            dec_seq = np.round(dec_seq.numpy().reshape(-1,)).astype(int)
         else:
             with tf.GradientTape() as tape:
                 z_out = self.encoder(XV)
@@ -268,7 +269,7 @@ class Agent:
             gd = [tf.clip_by_value(g, -1000, 1000) for g in gd]
             self.encoder.optimizer.apply_gradients(zip(ge, self.encoder.trainable_weights))
             self.decoder.optimizer.apply_gradients(zip(gd, self.decoder.trainable_weights))
-            dec_seq = tf.argmax(phi_seq,1)-1
+            dec_seq = (tf.argmax(phi_seq,1)-1).numpy()
         return ge+gd, dec_seq, reward, loss_value
 
     def test_iteration(self, XV, BA, batch_size=10000, offline=False, just_historical_path=False):

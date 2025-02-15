@@ -101,9 +101,13 @@ def main(cat: str = 'train_data', mode: str = 'standard'):
     logging.info('Finito')
 
         
-def get_done_data(cat: str = 'data/train_data'):
+def get_done_data(cat: str = 'data/train_data', limit:int=None):
     XV = np.load(f'{cat}/XV.npy')
     BA = np.load(f'{cat}/BA.npy')
+
+    if limit:
+        XV = XV[:limit]
+        BA = BA[:limit]
     
     XV = tf.constant( XV, tf.float32 )
     BA = tf.constant( BA, tf.float32 )                    
