@@ -114,8 +114,49 @@ class Encoder(tf.keras.Model):
             layer = tf.keras.layers.BatchNormalization()(layer)
 
         if cfg.mode == 'diff':
-            layer = tf.expand_dims(layer, 2)
+            layer = store_init = tf.expand_dims(layer, 2)
+            # layer = tf.keras.layers.Dense(10)(layer)
+            # layer = tf.keras.activations.tanh(layer)
+
+
+            layer = self.conv(layer, 64, 8)
+            layer = tf.nn.relu(layer)
+            layer = self.conv(layer, 64, 5)
+            layer = tf.nn.relu(layer)
+            layer = self.conv(layer, 64, 3)
+            layer = store = tf.nn.relu(layer)
+
+            layer = tf.keras.layers.Add()([layer, self.conv(store_init, 64, 1)])
+
+            layer = self.conv(layer, 128, 8)
+            layer = tf.nn.relu(layer)
+            layer = self.conv(layer, 128, 5)
+            layer = tf.nn.relu(layer)
+            layer = store2 = self.conv(layer, 128, 3)
+            layer = tf.nn.relu(layer)
+            layer = tf.keras.layers.Add()([layer, self.conv(store, 128, 1)])
+
+            layer = self.conv(layer, 256, 8)
+            layer = tf.nn.relu(layer)
+            layer = self.conv(layer, 256, 5)
+            layer = tf.nn.relu(layer)
+            layer = store3 = self.conv(layer, 256, 3)
+            layer = tf.nn.relu(layer)
+            layer = tf.keras.layers.Add()([layer, self.conv(store2, 256, 1)])
+
+            try:
+                layer = tf.keras.layers.GlobalAveragePooling1D(keepdims=True)(layer)
+            except Exception as e:
+                print('Could not create')
+                layer = tf.keras.layers.GlobalAveragePooling1D()(layer)
+
+            layer = tf.nn.relu(layer)
+
+            layer = tf.keras.layers.LSTM(100, return_sequences=False)(layer)
+
+
             layer = tf.keras.layers.Flatten()(layer)
+
         else:
             if cfg.mode not in ['technical','diff']:
                 layer = self.min_max(layer)
@@ -200,13 +241,25 @@ class Agent:
             self._phi_X = tf.concat([ZV, ZV, ZV], 0)
         return self._phi_X, self._phi_actions
 
-    def phi_processing(self, stacked_preds):
+    def phi_processing(self, stacked_preds, initial_action=1):
         lines = tf.concat(tf.split(tf.round(stacked_preds)+1, 3), 1)
         lines_np = lines.numpy().astype(int)
-        decs_ = [1]
+        decs_ = [initial_action]
         for row in lines_np:
             decs_.append(row[decs_[-1]])
         return tf.one_hot(decs_[:-1],3)
+
+    def recurrence_mimicking_forward_pass(self, XV):
+        """
+        Forward step mimicking recurrence of actions 
+        It assumes initial decision
+        """
+        z_out = self.encoder(XV)
+        stacked_z, stacked_a = self.multiply_decisions(z_out)
+        stacked_preds = self.decoder([stacked_z, stacked_a])
+        phi_seq = self.phi_processing(stacked_preds)
+        final_dec = self.decoder([z_out, phi_seq])
+        return final_dec
 
     def compute_apply_grads(self, tape, loss):
         grad_enc, grad_dec = tape.gradient(loss, [self.encoder.trainable_weights, self.decoder.trainable_weights])
@@ -216,7 +269,8 @@ class Agent:
         self.decoder.optimizer.apply_gradients(zip(grad_dec, self.decoder.trainable_weights))
         return grad_enc, grad_dec
 
-    def train_iteration(self, XV, BA, offline=False, online_learning=False):
+    def train_iteration(self, XV, BA, offline=False, online_learning=False, count_time=False):
+        self.time_counter = []
         if online_learning:
             dec_seq = tf.constant([0.])
             A, B, eta = 0., 0.01, 0.05
@@ -242,34 +296,30 @@ class Agent:
         elif offline:
             with tf.GradientTape() as tape:
                 dec_seq = tf.constant([0.])
-                for xrow in XV:
+                start = time.time()
+                for i,xrow in enumerate(XV):
+                    print(i, sep='',end=' ')
                     prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None])+1.0, tf.int32),3)[0,...]
                     pred_a = self.decoder([self.encoder(xrow[None,:]), prev_a])
                     dec_seq = tf.concat([dec_seq, pred_a[0]], axis=0)
-                dec_seq = dec_seq[:-1,None]
+                    if count_time:
+                        self.time_counter.append(time.time()-start)
+
+                dec_seq = dec_seq[1:,None]
                 reward = self.utility_function([BA, dec_seq])
                 loss_value = -reward
-            ge, gd = tape.gradient(loss_value, [self.encoder.trainable_weights, self.decoder.trainable_weights])
-            ge = [tf.clip_by_value(g, -1000, 1000) for g in ge]
-            gd = [tf.clip_by_value(g, -1000, 1000) for g in gd]
-            self.encoder.optimizer.apply_gradients(zip(ge, self.encoder.trainable_weights))
-            self.decoder.optimizer.apply_gradients(zip(gd, self.decoder.trainable_weights))
+            ge, gd = self.compute_apply_grads(tape, loss_value)
             dec_seq = np.round(dec_seq.numpy().reshape(-1,)).astype(int)
         else:
+            # RML
+            start = time.time()
             with tf.GradientTape() as tape:
-                z_out = self.encoder(XV)
-                stacked_z, stacked_a = self.multiply_decisions(z_out)
-                stacked_preds = self.decoder([stacked_z, stacked_a])
-                phi_seq = self.phi_processing(stacked_preds)
-                final_dec = self.decoder([z_out, phi_seq])
-                reward = self.utility_function([BA, final_dec])
+                dec_seq = self.recurrence_mimicking_forward_pass(XV)
+                reward = self.utility_function([BA, dec_seq])
                 loss_value = -reward
-            ge, gd = tape.gradient(loss_value, [self.encoder.trainable_weights, self.decoder.trainable_weights])
-            ge = [tf.clip_by_value(g, -1000, 1000) for g in ge]
-            gd = [tf.clip_by_value(g, -1000, 1000) for g in gd]
-            self.encoder.optimizer.apply_gradients(zip(ge, self.encoder.trainable_weights))
-            self.decoder.optimizer.apply_gradients(zip(gd, self.decoder.trainable_weights))
-            dec_seq = (tf.argmax(phi_seq,1)-1).numpy()
+                self.time_counter = [time.time()-start]
+            ge, gd = self.compute_apply_grads(tape, loss_value)
+            dec_seq = np.round(dec_seq.numpy().reshape(-1,)).astype(int) # (tf.argmax(final_dec,1)-1).numpy()
         return ge+gd, dec_seq, reward, loss_value
 
     def test_iteration(self, XV, BA, batch_size=10000, offline=False, just_historical_path=False):
@@ -299,3 +349,19 @@ class Agent:
     def set_lr(self, lr: float):
         self.decoder.optimizer.lr.assign(lr)
         self.encoder.optimizer.lr.assign(lr)
+
+
+    def fit(self, XV, BA, epochs, verbose=0):
+        xv = XV.values
+        ba = BA.values
+        for e in range(epochs):
+            grads, decisions, rewards, loss_value = self.train_iteration(xv, ba
+                                                                            )
+            grads = [sum([x.numpy().reshape(-1,).tolist() for x in grads],[])]
+
+            return_rate = np.round(np.mean(rewards),5) # round((np.prod(rewards)-1)*100,3) if 'sharpe' == 'sharpe' else np.round(np.mean(rewards),5)
+            avg_grads = np.mean(np.abs(sum(grads,[])))
+            if verbose>0:
+                print(return_rate)
+        
+        return self

@@ -33,9 +33,10 @@ def main(train_log_name='results/train_log.csv'):
     if os.path.exists('weights/decider.npy'):
         os.remove('weights/decider.npy')
 
-    _, _, XV, BA = get_done_data(limit=15_000)
+    _, _, XV, BA = get_done_data(limit=5_000)
     
     agent=Agent(input_len = XV.shape[1:])    
+    agent.set_lr(0.0)
     
     max_reward = 0
     test_rewards = []
@@ -52,16 +53,35 @@ def main(train_log_name='results/train_log.csv'):
 
     end = time.time()
     print(f"RML Time: {end-start}")
-    print(decisions[-50:])
+    print('Decision path: ', decisions[-50:])
 
     start = time.time()
     _, decisions, _, _ = agent.train_iteration(XV, BA,
                 offline=True, 
-                online_learning=False)
+                online_learning=False, count_time=True)
 
     end = time.time()
     print(f"Offline Time: {end-start}")
-    print(decisions[-50:])
+    print('Decision path: ', decisions[-50:])
+    times = pd.Series(agent.time_counter)
+    times.index = range(1,len(times)+1)
+    times.to_csv('results/time_counter_offline.csv')
+
+    ## RML loop to check times, just some of them to restrict number of runs without loss of generality
+    times = []
+    for i in list(range(3,100))+list(range(100,1000,10))+list(range(1000,5_001,100)):
+        _, _, XV, BA = get_done_data(limit=i)
+        _, decisions, _, _ = agent.train_iteration(XV, BA,
+                    offline=False, 
+                    online_learning=False)
+
+        times.append([i,agent.time_counter[-1]])
+
+    pd.DataFrame(times, columns=['i','time']).set_index('i').to_csv('results/time_counter_rml.csv')
+
+
+
+
 
 if __name__ == "__main__":
     main()

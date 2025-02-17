@@ -11,7 +11,7 @@ In brief, RML uses a single feedforward pass to generate actions for each time s
 
 - **src/**  
   Source code with modules for data loading/preprocessing, different reinforcement learning methods (offline RRL, online RRL, RML), and separate training scripts.
-- **pyproject.toml / requirements.txt**  
+- **pyproject.toml**  
   Project dependencies.
 - **.gitignore**  
   Standard Python and OS ignore patterns.
@@ -19,19 +19,21 @@ In brief, RML uses a single feedforward pass to generate actions for each time s
 ## Minimal Usage Example
 
 1. Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-    or use
-    ```bash
-    pip install .
-    ```
-2. Run a chosen training script (e.g., RML). Set up the parameters first in $config.py$ and then:
-    ```bash
-    python experiment.py
-    ```
-3. Check logs
-Each run produces CSV logs and saves model weights into $weights/$
+  ```bash
+  bash install.sh
+  ```
+2. Jak can configure experiments with:
+  ```bash
+  config.py
+  ```
+3. To run comparison with Online RRL:
+  ```bash
+  python experiment.py
+  ```
+4. To run comparison with Offline RRL:
+  ```bash
+  python time_experiment.py
+  ```
 
 ## Reference
 
