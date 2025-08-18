@@ -5,20 +5,30 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_dir)
 
 from config import Config as cfg
-import tensorflow as tf
-import numpy as np
 import random
 import time
 
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
-os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
+import tensorflow as tf
+import numpy as np
+
+if 'PRECISION' not in os.environ:
+    os.environ['PRECISION'] = '32'
+
+if os.environ['PRECISION'] == '64':
+    tf_float = tf.float64
+    tf_int = tf.int64
+elif os.environ['PRECISION'] == '32':
+    tf_float = tf.float32
+    tf_int = tf.int32
+else:
+    raise NotImplementedError(f"Unsupported precision: {os.environ['PRECISION']}")
+
+
+DEBUG: bool = False
 
 seed_value = int(os.environ['train_log_name'].split('_')[-1].split('.')[0])
 print('SEED: ', seed_value)
-time.sleep(10)
+time.sleep(0.1)
 os.environ['PYTHONHASHSEED'] = str(seed_value)
 random.seed(seed_value)
 np.random.seed(seed_value)
@@ -114,10 +124,10 @@ class Encoder(tf.keras.Model):
             layer = tf.keras.layers.BatchNormalization()(layer)
 
         if cfg.mode == 'diff':
-            layer = store_init = tf.expand_dims(layer, 2)
-            # layer = tf.keras.layers.Dense(10)(layer)
-            # layer = tf.keras.activations.tanh(layer)
+            # layer = tf.keras.layers.Dense(3)(layer)
+            # layer = tf.keras.activations.relu(layer)
 
+            layer = store_init = tf.expand_dims(layer, 2)
 
             layer = self.conv(layer, 64, 8)
             layer = tf.nn.relu(layer)
@@ -238,7 +248,8 @@ class Agent:
                 tf.concat([zeros, ones, zeros],1),
                 tf.concat([zeros, zeros, ones],1)
             ], 0)
-            self._phi_X = tf.concat([ZV, ZV, ZV], 0)
+        self._phi_X = tf.concat([ZV, ZV, ZV], 0)
+
         return self._phi_X, self._phi_actions
 
     def phi_processing(self, stacked_preds, initial_action=1):
@@ -269,14 +280,15 @@ class Agent:
         self.decoder.optimizer.apply_gradients(zip(grad_dec, self.decoder.trainable_weights))
         return grad_enc, grad_dec
 
-    def train_iteration(self, XV, BA, offline=False, online_learning=False, count_time=False):
+
+    def train_iteration(self, XV, BA, offline=False, online_learning=False, count_time=False, forward_only=False):
         self.time_counter = []
         if online_learning:
-            dec_seq = tf.constant([0.])
+            dec_seq = tf.constant([1.])
             A, B, eta = 0., 0.01, 0.05
             for i, xrow in enumerate(XV[:-1]):
                 with tf.GradientTape(persistent=True) as tape:
-                    prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None]), tf.int32),3)[0,...]
+                    prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None]), tf_int),3)[0,...]
                     new_a = self.decoder([self.encoder(xrow[None,:]), prev_a])
                     dec_seq = tf.concat([dec_seq, new_a[0]], axis=0)
                     rt = (BA[i+1,0]-BA[i,0]) / BA[i,0] * new_a
@@ -289,26 +301,35 @@ class Agent:
                     loss_value = -Dt
                     A = A + eta*dA
                     B = B + eta*dB
-                self.compute_apply_grads(tape, loss_value)
+                if not forward_only:
+                    self.compute_apply_grads(tape, loss_value)
             dec_seq = dec_seq[:-1,None]
             reward = self.utility_function([BA[:len(dec_seq)], dec_seq])
             loss_value = -reward
         elif offline:
             with tf.GradientTape() as tape:
-                dec_seq = tf.constant([0.])
+                dec_seq = tf.constant([0.], dtype=tf_float)
                 start = time.time()
                 for i,xrow in enumerate(XV):
-                    print(i, sep='',end=' ')
-                    prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None])+1.0, tf.int32),3)[0,...]
+                    prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None])+1.0, tf_int),3)[0,...]
+                    # prev_a = tf.stop_gradient(prev_a)
+
                     pred_a = self.decoder([self.encoder(xrow[None,:]), prev_a])
+                    
                     dec_seq = tf.concat([dec_seq, pred_a[0]], axis=0)
                     if count_time:
                         self.time_counter.append(time.time()-start)
 
+                ### proper one
                 dec_seq = dec_seq[1:,None]
+
                 reward = self.utility_function([BA, dec_seq])
                 loss_value = -reward
-            ge, gd = self.compute_apply_grads(tape, loss_value)
+
+            if not forward_only:    
+                ge, gd = self.compute_apply_grads(tape, loss_value)
+            else:
+                ge, gd = [], []
             dec_seq = np.round(dec_seq.numpy().reshape(-1,)).astype(int)
         else:
             # RML
@@ -318,7 +339,11 @@ class Agent:
                 reward = self.utility_function([BA, dec_seq])
                 loss_value = -reward
                 self.time_counter = [time.time()-start]
-            ge, gd = self.compute_apply_grads(tape, loss_value)
+            if not forward_only:
+                ge, gd = self.compute_apply_grads(tape, loss_value)
+            else:
+                ge, gd = [], []
+            start = time.time()
             dec_seq = np.round(dec_seq.numpy().reshape(-1,)).astype(int) # (tf.argmax(final_dec,1)-1).numpy()
         return ge+gd, dec_seq, reward, loss_value
 
@@ -326,16 +351,16 @@ class Agent:
         if offline:
             dec_seq = tf.constant([1.])
             for xrow in XV:
-                prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None]), tf.int32),3)[0,...]
+                prev_a = tf.one_hot(tf.cast(tf.round(dec_seq[-1:,None]), tf_int),3)[0,...]
                 pred_a = self.decoder([self.encoder(xrow[None,:]), prev_a])
-                dec_seq = tf.concat([dec_seq, tf.cast(tf.argmax(pred_a,1), tf.float32)], axis=0)
+                dec_seq = tf.concat([dec_seq, tf.cast(tf.argmax(pred_a,1), tf_float)], axis=0)
             if just_historical_path:
                 return dec_seq
         else:
             z_out = self.encoder.predict(XV, batch_size=batch_size, verbose=0)
             if len(z_out.shape) == 1:
                 z_out = np.expand_dims(z_out, 1)
-            z_out_tf = tf.constant(z_out, tf.float32)
+            z_out_tf = tf.constant(z_out, tf_float)
             stacked_z, stacked_a = self.multiply_decisions(z_out_tf)
             stacked_preds = self.decoder([stacked_z, stacked_a])
             phi_seq = self.phi_processing(stacked_preds)

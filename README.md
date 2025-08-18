@@ -26,15 +26,14 @@ In brief, RML uses a single feedforward pass to generate actions for each time s
   ```bash
   config.py
   ```
-3. To run comparison with Online RRL:
+3. To run time comparison with Offline RRL (RLSTM-A):
   ```bash
-  python experiment.py
+  python experiment_time.py
   ```
-4. To run comparison with Offline RRL:
+4. To run exactness comparison with Offline RRL (RLSTM-A):
   ```bash
-  python time_experiment.py
+  python experiment_exactness.py
   ```
-
 ## Reference
 
 For the complete description of the method, mathematical details, and experiments, see our article THE REFERENCE TO ADD
