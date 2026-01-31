@@ -1,0 +1,46 @@
+# Configuration for the transaction-cost supervised learning experiment
+
+# data:
+#   csv_path: data/processed/input_table_15s.csv
+#   change: 0.005
+#   wave_length: 12
+#   bid_ask_spread: 0.00008
+#   timeperiods: 12
+#   returnperiod: 1000
+#   step: 1
+
+# experiment:
+#   train_size: 15000
+#   runs: 30
+#   epochs: 1000
+#   checkpoint_interval: 200
+#   learning_rate: 0.001
+#   output_dir: results
+#   variants:
+#     recurrency: true
+#     no_recurrency: false
+
+
+data:
+  # To sweep multiple datasets, provide a comma-separated list, e.g.
+  csv_path: data/processed/GBPUSD_15min_expanded.csv, data/processed/EURUSD_15min_expanded.csv, data/processed/USDJPY_15min_expanded.csv, data/processed/USDCHF_15min_expanded.csv
+  # csv_path: data/processed/USDJPY_15min_expanded.csv
+  # normalization: one or more of [difference, normalized_difference, min_max, log_returns, percentage_returns] (comma-separated to sweep)
+  normalization: normalized_difference
+  change: 0.005
+  wave_length: 12
+  bid_ask_spread: 0.00008
+  timeperiods: 12
+  returnperiod: 1000
+  step: 1
+
+experiment:
+  train_size: 77631
+  runs: 50
+  epochs: 5000
+  checkpoint_interval: 1000
+  learning_rate: 0.001
+  output_dir: results
+  variants:
+    recurrency: true
+    no_recurrency: false

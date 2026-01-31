@@ -1,0 +1,51 @@
+USDCHF:
+  short: 56
+  long: 206
+  ma_train: 0.005684677045792341
+  threshold: 0.002702613551234221
+  revert: 1.0
+  ma_test: -0.002703943522647023
+EURUSD:
+  short: 51
+  long: 214
+  ma_train: 0.001606093836016953
+  threshold: 1.0e-05
+  revert: 1.0
+  ma_test: -0.0068549891002476215
+GBPJPY:
+  short: 49
+  long: 91
+  ma_train: 0.00873518455773592
+  threshold: 0.9183712244897959
+  revert: -1.0
+  ma_test: -0.0012109850067645311
+GBPUSD:
+  short: 42
+  long: 101
+  ma_train: 0.002064220607280731
+  threshold: 0.00020412589671932048
+  revert: 1.0
+EURCHF:
+  short: 24
+  long: 190
+  ma_train: 0.003854308510199189
+  threshold: 0.0013925848346127748
+  revert: -1.0
+USDJPY:
+  short: 41
+  long: 136
+  ma_train: 0.0019397498108446598
+  threshold: 0.24049792030642023
+  revert: 1.0
+GBPAUD:
+  short: 5
+  long: 172
+  ma_train: 0.009312924928963184
+  threshold: 0.008366995617258725
+  revert: -1.0
+CADJPY:
+  short: 41
+  long: 99
+  ma_train: 0.003472834825515747
+  threshold: 0.07161223563068564
+  revert: 1.0

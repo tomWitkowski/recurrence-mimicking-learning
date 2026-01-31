@@ -47,7 +47,7 @@ def main(plot_i, name = 'test'):
     """
     unlever = True
     
-    XVs, all_dec, XV, BA = get_done_data(f'{name}_data')
+    XVs, all_dec, XV, BA = get_done_data(f'data/{name}_data')
     del XVs
     del all_dec
     trader=Trader(input_len = XV.shape[1:])    
@@ -96,9 +96,8 @@ def main(plot_i, name = 'test'):
     
     print(f"""
         Result: 
-            Neural: {round((np.prod(rewards)-1)*100,3)}%
+            Neural: {round((np.prod(rewards)-1)*100,3) if cfg.reward_type!='sharpe' else 100*np.round(np.mean(rewards),5)}%
             Real:   {round((ev-1)*100,3)}%
-            Real:   {round((fast_ev-1)*100,3)}%
             Lit rev real: {round((lit_rev_metrics_ev)*100,3)}
         Decisions: 
             sell: {decs[-1]}
@@ -153,7 +152,7 @@ def main(plot_i, name = 'test'):
 
     fig, ax = plt.subplots(figsize=(8,4))
     
-    plt.plot(bas.index.values[::10], bas.bid.values[::10], color='black', lw=0.2, alpha=0.4)
+    plt.plot(bas.index.values, bas.bid.values, color='black', lw=0.2, alpha=0.4)
     
     plt.scatter(bas[bas.d == -1].index, bas[bas.d == -1].bid, color='red', s=2)
     plt.scatter(bas[bas.d == 1].index, bas[bas.d == 1].bid, color='green', s=2)

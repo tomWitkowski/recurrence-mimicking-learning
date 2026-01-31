@@ -1,0 +1,54 @@
+pairs:  # Pairs to process; must match processed CSV filenames.
+  - EURUSD
+  - GBPUSD
+  - USDCHF
+  - USDJPY
+  - GBPJPY
+  - GBPAUD
+  - CADJPY
+  - EURCHF
+
+data_dir: data/processed  # Relative to ti_augment; contains *_15min_expanded.csv
+macd_params_path: macd_params.yaml  # Output/read path for MACD parameters
+
+experiment:
+  prev_hours: 12  # Number of lagged diff features
+  runs: 20  # Number of training runs per split
+  epochs: 4000  # Total epochs (each loop trains in chunks of 20)
+  lr: 0.0002  # Learning rate (can be a single value or a list for scheduling)
+  # lr: 0.0005  # Learning rate
+  train_log_name: "20"  # Used for RNG seed in model
+  multiprocess: true  # Use multiprocessing for assets
+  processes: 8  # Number of parallel worker processes
+
+model:
+  encoder_layers:
+    - type: dense
+      units: 5  # output size (for GLU, Dense uses 2x units internally)
+      activation: softplus
+      dropout: 0.3
+  decoder_layers:
+    - type: dense
+      units: 5  # output size (for GLU, Dense uses 2x units internally)
+      activation: softplus
+      dropout: 0.3
+
+schedule:
+  lr: [0.0002]  # Example grid: [0.002, 0.001, 0.1]
+  # model.encoder_layers can be scheduled via full paths
+  # model.encoder_layers:
+  #   - [{type: dense, units: 6, activation: glu, dropout: 0.3}]
+  #   - [{type: dense, units: 6, activation: softplus, dropout: 0.3}]
+  # model.decoder_layers:
+  #   - [{type: dense, units: 6, activation: glu, dropout: 0.3}]
+  #   - [{type: dense, units: 6, activation: softplus, dropout: 0.3}]
+
+split:
+  mode: static  # static | roll
+  start_quarter: [2019, 1]  # Training starts at this quarter (inclusive).
+  end_quarter: [2021, 4]  # Last training quarter (inclusive). Test starts next quarter.
+  end_test_quarter: [2025, 4]  # Last test quarter (inclusive).
+  roll:
+    train_mode: expand  # expand | fixed
+    train_quarters: 8  # Only used when train_mode=fixed (length of training window).
+    test_quarters: 2  # Rolling mode: number of quarters per test window.

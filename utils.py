@@ -159,7 +159,7 @@ class LightStrategy:
     def buy(self, bid, ask):
         self.bid_open, self.ask_open = bid, ask
         self.position = 1
-        \
+        
         
     def sell(self, bid, ask):
         self.bid_open, self.ask_open = bid, ask
