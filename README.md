@@ -8,20 +8,27 @@ over time.
 
 ## Why it matters
 Offline recurrent reinforcement learning typically requires T sequential
-rollouts per epoch to build an action trajectory. RML reorganizes this into two
+rollouts per epoch to build an action trajectory. 
+
+![Standard sequential rollout](visualizations/anim1_standard_rrl.gif)
+
+RML reorganizes this into two
 batched passes while preserving the exact recurrent path, which makes training
 much faster without giving up global-reward optimization.
 
+
 ## Intuition (two-pass view)
 - First pass: evaluate all possible previous actions in parallel.
-- Selection: pick the exact recurrence path a step-by-step rollout would take.
-- Second pass: keep the trajectory differentiable and optimize the global reward.
+  ![Batch pass](visualizations/anim2_batch_pass.gif)
+- Selection: pick the exact recurrence path a step-by-step rollout would take. <br>
+  Second pass: keep the trajectory differentiable and optimize the global reward.
+  ![Batch pass](visualizations/anim3_phi_2nd_pass.gif)
 
 ## Core implementation
 Use the core RML module with any encoder/decoder and any discrete or
 quasi-continuous action set.
 
-![RML visual abstract](rml_vis_abstract.jpg)
+![RML visual abstract](visualizations/rml_vis_abstract.jpg)
 
 RML is a recurrence‑mimicking learning scheme that turns a standard encoder/decoder
 into a sequential decision maker: the decoder conditions on both the latent
